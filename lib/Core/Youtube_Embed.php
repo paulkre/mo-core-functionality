@@ -108,7 +108,8 @@ trait Youtube_Embed {
 			$data['image']         = $image;
 			$data['youtube_image'] = 'https://img.youtube.com/vi/' . $youtube_id . '/maxresdefault.jpg';
 
-			\Timber::render( \Mo\Core\PLUGIN_PATH . 'views/youtube-embed.twig', $data );
+			\Timber\Timber::$locations = \Mo\Core\PLUGIN_PATH . 'views';
+			\Timber::render( 'youtube-embed.twig', $data );
 			die;
 		}
 	}

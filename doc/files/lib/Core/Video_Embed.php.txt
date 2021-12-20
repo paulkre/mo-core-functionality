@@ -88,7 +88,8 @@ trait Video_Embed {
 			$data['embed_url'] = $embed_url;
 			$data['image']     = $image;
 
-			\Timber::render( \Mo\Core\PLUGIN_PATH . 'views/video-embed.twig', $data );
+			\Timber\Timber::$locations = \Mo\Core\PLUGIN_PATH . 'views';
+			\Timber::render( 'video-embed.twig', $data );
 			die;
 		}
 	}
