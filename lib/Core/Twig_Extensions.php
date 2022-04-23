@@ -29,6 +29,7 @@ final class Twig_Extensions {
 		\add_filter( 'timber/twig', [ $this, 'init_twig_extension_stringloader' ] );
 		\add_filter( 'timber/twig', [ $this, 'add_twig_filters' ] );
 		\add_filter( 'timber/twig', [ $this, 'add_twig_functions' ] );
+		$this->fix_icon_sets_for_external_content_url();
 	}
 
 	/**

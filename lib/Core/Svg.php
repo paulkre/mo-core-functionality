@@ -14,6 +14,71 @@ namespace Mo\Core;
 trait Svg {
 
 	/**
+	 * The path inside the theme directory at which the SVG files of the used icon sets are supposed to be found.
+	 * 
+	 * @var string Icon set path.
+	 */
+	private static $icon_set_path = '/assets/svg-sprite/';
+
+	/**
+	 * Handle icon sets which are loaded from a content URL that has deviates from the domain of the site URL.
+	 * 
+	 * External domains are not compatable with `<use href="..."/>`, so we need
+	 * fetch the SVG data manually and insert it into the HTML.
+	 */
+	protected function fix_icon_sets_for_external_content_url() {
+		if (parse_url(get_template_directory_uri(), PHP_URL_HOST) == parse_url(get_site_url(), PHP_URL_HOST))
+			return;
+
+		add_action('wp_footer', function() {
+			?><script type="text/javascript">
+				(async () => {
+					const iconSetBaseUrl = "<?= get_template_directory_uri() . self::$icon_set_path ?>";
+					const iconSetBaseUrlRegExp = iconSetBaseUrl.replace(/[.*+?^${}()|\/[\]\\]/g, '\\$&');
+
+					const iconSetUses = Array.from(document.querySelectorAll("svg use"))
+						.map((elem) => {
+							const url = elem.getAttribute("xlink:href") || elem.getAttribute("href");
+							return url && url.match(new RegExp(`^${iconSetBaseUrlRegExp}`))
+								? { elem, url }
+								: null;
+						})
+						.filter((result) => !!result)
+						.map((data) => {
+							const result = data.url.match(
+								new RegExp(`^${iconSetBaseUrlRegExp}((?:(?!\.svg).)+)\.svg[^#]*#(.+)`)
+							);
+							return { setId: result[1], iconId: result[2], ...data };
+						});
+
+					const uniqueIconSetUrls = {};
+					iconSetUses.forEach(({ url, setId }) => {
+						if (!uniqueIconSetUrls[setId])
+							uniqueIconSetUrls[setId] = url.split("#")[0];
+					});
+
+					const svgHtml = await Promise.all(
+						Object.values(uniqueIconSetUrls).map((url) =>
+							fetch(url).then((res) => res.text())
+						)
+					).then((parts) => parts.join(""));
+
+					const wrapper = document.createElement("div");
+					wrapper.style.display = "none";
+					wrapper.innerHTML = svgHtml;
+					document.body.insertBefore(wrapper, document.body.childNodes[0]);
+
+					iconSetUses.forEach(({elem, iconId}) => {
+						elem.removeAttribute("xlink:href");
+						elem.removeAttribute("href");
+						elem.setAttribute("href", `#${iconId}`);
+					});
+				})();
+			</script><?php
+		});
+	}
+
+	/**
 	 * Print SVG icon markup from image sprite.
 	 *
 	 * @param string       $icon The icon name in the SVG sprite map.
